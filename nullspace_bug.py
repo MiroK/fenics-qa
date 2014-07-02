@@ -4,6 +4,7 @@ import numpy as np
 mesh = UnitSquareMesh(4, 4)
 V = VectorFunctionSpace(mesh, 'CG', 1)
 
+# Basis which is not orthogonal
 e0 = interpolate(Constant((1, 2)), V)
 normalize(e0.vector(), 'l2')
 
@@ -21,15 +22,15 @@ for i, ei in enumerate(basis_v):
         D[i, j] = ei.inner(ej)
 print D
 
-
-print 'Is Orthonormal', basis.is_orthonormal()
+# Basis which is not orthonormal
 e0 = interpolate(Constant((1, 0)), V)
-
 e1 = interpolate(Constant((0, 2)), V)
 
 basis_f = [e0, e1]
 basis_v = [e.vector() for e in basis_f]
 
+basis = VectorSpaceBasis(basis_v)
+print 'Is Orthonormal', basis.is_orthonormal()
 D = np.zeros((2, 2))
 for i, ei in enumerate(basis_v):
     for j, ej in enumerate(basis_v):
