@@ -2,18 +2,22 @@ from dolfin import *
 
 # Create mesh and define function space
 #geom = Rectangle(0., 0., 5., 5.) - Rectangle(0., 0., 2, 2)
-#geom.set_subdomain(1, Rectangle(2.5, 2.5, 3, 3))
+#diff0 = Rectangle(0, 0, 3, 3)
+#diff1 = Rectangle(0:, 0, 3, 3) - Rectangle(0, 0, 2, 2)
+#geom.set_subdomain(1, diff1)
 
 #geom = Rectangle(0., 0., 5., 5.) - Rectangle(0., 0., 2, 2)
 #geom.set_subdomain(1, Rectangle(0, 0, 3, 3))
 
 geom = Rectangle(0., 0., 5., 5.) - Circle(0., 0., 2.5)
-geom.set_subdomain(1, Circle(0., 0., 3.5))
-
-mesh = Mesh(geom, 10)
-V = FunctionSpace(mesh, 'Lagrange', 1)
+diff = CSGIntersection(Circle(0., 0., 3.5) - Circle(0., 0., 2.51),
+                       Rectangle(0.01, 0.01, 3.5, 3.5))
+geom.set_subdomain(1, diff)
+mesh = Mesh(geom, 35)
 
 plot(mesh)
+V = FunctionSpace(mesh, 'Lagrange', 1)
+
 print MeshQuality.radius_ratio_min_max(mesh)
 
 # Define boundary conditions
@@ -27,6 +31,7 @@ plot(f_f)
 plot(u0, mesh=mesh)
 bc = DirichletBC(V, u0, DomainBoundary())
 
+interactive()
 # Define variational problem
 u = TrialFunction(V)
 v = TestFunction(V)
@@ -64,4 +69,3 @@ file = File('poisson.pvd')
 file << u
 
 # Hold plot
-interactive()
