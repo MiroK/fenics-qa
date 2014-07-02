@@ -15,7 +15,7 @@ check_midpoint_false = FacetFunction('size_t', mesh, 0)
 Arch.mark(check_midpoint_false, 1, False)
 
 check_midpoint_true = FacetFunction('size_t', mesh, 0)
-Arch.mark(check_midpoint_true, 1, True)
+Arch.mark(check_midpoint_true, 1)  # True by default
 
 plot(check_midpoint_false, title='False')
 plot(check_midpoint_true, title='True')
