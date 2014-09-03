@@ -14,25 +14,10 @@ normalize(e1.vector(), 'l2')
 basis_f = [e0, e1]
 basis_v = [e.vector() for e in basis_f]
 
+D = np.zeros((2, 2))
+for i, ei in enumerate(basis_v):
+    for j, ej in enumerate(basis_v):
+        D[i, j] = ei.inner(ej)
+print D
 basis = VectorSpaceBasis(basis_v)
 print 'Is orthogonal', basis.is_orthogonal()
-D = np.zeros((2, 2))
-for i, ei in enumerate(basis_v):
-    for j, ej in enumerate(basis_v):
-        D[i, j] = ei.inner(ej)
-print D
-
-# Basis which is not orthonormal
-e0 = interpolate(Constant((1, 0)), V)
-e1 = interpolate(Constant((0, 2)), V)
-
-basis_f = [e0, e1]
-basis_v = [e.vector() for e in basis_f]
-
-basis = VectorSpaceBasis(basis_v)
-print 'Is Orthonormal', basis.is_orthonormal()
-D = np.zeros((2, 2))
-for i, ei in enumerate(basis_v):
-    for j, ej in enumerate(basis_v):
-        D[i, j] = ei.inner(ej)
-print D
