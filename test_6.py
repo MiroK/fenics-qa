@@ -1,0 +1,50 @@
+from dolfin import *
+# Create mesh and define function space
+mesh = UnitSquareMesh(8, 8)
+V = FunctionSpace(mesh, "Lagrange", 1)
+# Define boundary condition
+u0 = Function(V)
+bc = DirichletBC(V, u0, "x[0] < DOLFIN_EPS || x[0] > 1.0 - DOLFIN_EPS")
+# Define variational problem
+u = TrialFunction(V)
+v = TestFunction(V)
+f = Expression("10*exp(-(pow(x[0] - 0.5, 2) + pow(x[1] - 0.5, 2)) / 0.02)",
+degree=1)
+g = Expression("sin(5*x[0])", degree=1)
+a = inner(grad(u), grad(v))*dx()
+L = f*v*dx() + g*v*ds()
+# Define function for the solution
+u = Function(V)
+
+# Define goal functional (quantity of interest)
+M = u*dx()
+
+def evaluate_goal(self, M, u):
+    print 'XXXXXXXXXXXXXXXXXXXXXx'
+    mesh = u.function_space().mesh()
+    M.set_coefficient(M.num_coefficients() - 1, u);
+    return assemble(M);
+
+class Foo(AdaptiveLinearVariationalSolver):
+    def __init__(self, problem, M):
+        AdaptiveLinearVariationalSolver.__init__(self, problem, M)    
+         
+
+
+
+# Define error tolerance
+tol = 1.e-5
+# Solve equation a = L with respect to u and the given boundary
+# conditions, such that the estimated error (measured in M) is less
+# than tol
+problem = LinearVariationalProblem(a, L, u, bc)
+solver = Foo(problem, M)
+solve.evaluate_goal = evaluate_goal
+
+solver.parameters["error_control"]["dual_variational_solver"]["linear_solver"] = "cg"#
+solver.solve(tol)
+solver.summary()
+# Plot solution(s)
+plot(u.root_node(), title="Solution on initial mesh")
+plot(u.leaf_node(), title="Solution on final mesh")
+interactive()
