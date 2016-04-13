@@ -1,0 +1,79 @@
+from dolfin import *
+# from numpy import *
+
+gamma = 1.0
+vbar = 9.0
+beta = 10.0
+alpha_1 = 1.0
+
+epsilon = 1.0
+
+set_log_level(10)
+
+mesh = UnitSquareMesh(10, 10)
+
+
+# Defining the function spaces
+
+V_dg = FunctionSpace(mesh, "DG", 1)
+
+
+
+u0 = Constant(0.0)
+
+
+
+v = TestFunction(V_dg)
+u = TrialFunction(V_dg)
+
+
+b = Expression(('gamma_in*(vbar_in-x[0])', '(beta_in-alpha_in*x[1])'), gamma_in = gamma, vbar_in =vbar, beta_in = beta, alpha_in = alpha_1)
+
+f = Constant(-1.0)
+
+n = FacetNormal(mesh)
+h = CellSize(mesh)
+
+of = Function(V_dg)
+
+kappa = Constant(-1.0)
+
+
+alpha = 32.0
+
+a_convection = +dot(grad(v), kappa*grad(u))*dx + v*inner(b, grad(u))*dx \
+
+-kappa*dot(jump(v, n), avg(grad(u)) )*dS \
+
+-kappa*dot(avg(grad(v)), jump(u, n))*dS \
+
+-kappa*inner(v*n, grad(u))*ds \
+
+-kappa*inner(grad(v), u*n)*ds \
+
++kappa*alpha/h('+')*dot(jump(v, n), jump(u, n))*dS \
+
++kappa*alpha/h*v*u*ds
+
+#exterior
+- dot(b, n)*(u('+'))*v('+')*ds\
+
+#interior
+- dot(b, n)*(u('+') - u('-'))*v('+')*dS\
+
+L = f*v*dx
+
+
+# Solution function
+solution = Function(V_dg)
+
+# Assemble and apply boundary conditions
+A_convection = assemble(a_convection)
+b_assembly = assemble(L)
+bc.apply(A_convection, b_assembly)
+# Solve system
+solve(A_convection, solution.vector(), b_assembly)
+
+
+# Plot solution
+plot(solution, interactive = True)

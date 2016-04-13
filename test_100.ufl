@@ -1,0 +1,8 @@
+cell = triangle
+V = FiniteElement('N1curl', cell, 1)
+v = TestFunction(V)
+n = FacetNormal(cell)
+
+L = dot(v, n)*ds(metadata={'quadrature_degree': 0})
+
+forms = [L]

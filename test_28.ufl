@@ -1,0 +1,7 @@
+cell = triangle
+
+V = FiniteElement('Lagrange', cell, 1)
+u = TrialFunction(V)
+v = TestFunction(V)
+
+a = inner(u, v)*dx
