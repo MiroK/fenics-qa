@@ -12,8 +12,13 @@ my_first, my_last = dofmap.ownership_range()                # global
 
 # Let's build manually function x**2 + y**2
 visited = []
-# Based on DOLFIN version you might need x = V.dofmap().tabulate_all_coordinates(mesh)
-x = V.tabulate_dof_coordinates().reshape((-1, 2))
+
+# 'Handle' API change of tabulate coordinates
+if dolfin_version().split('.')[1] == '7':
+    x = V.tabulate_dof_coordinates().reshape((-1, 2))
+else:
+    x = V.dofmap().tabulate_all_coordinates(mesh)
+
 for cell in cells(mesh):                                                        
     dofs = dofmap.cell_dofs(cell.index())                   # local                                    
     for dof in dofs:                                                            
