@@ -1,19 +1,19 @@
 from dolfin import *
+from itertools import product
 
-mesh = RectangleMesh(Point(0,0), Point(1,2), 1,2)
+mesh = BoxMesh(Point(-1, -1, -1), Point(1, 1, 1), 2, 2, 3)
 
-sd = CompiledSubDomain("x[1] <= 1.0")
-mf = MeshFunction("size_t", mesh, 2)
-mf.set_all(0)
-sd.mark(mf, 1)
+domains = CellFunction('size_t', mesh, 0)
+qs = [CompiledSubDomain('x[0] %s= 0 && x[1] %s= 0' % (s, t))
+      for s, t in product(('>', '<'), ('>', '<'))]
 
-top = SubMesh(mesh, mf, 0)
-bottom = SubMesh(mesh, mf, 1)
-down = Expression(["0.0", "-1.0"])
+for i, q in enumerate(qs, 1): q.mark(domains, i)
 
-bottom.move(down)
-bottomfile = XDMFFile(mpi_comm_world(), "bottom.xdmf")
-topfile = XDMFFile(mpi_comm_world(), "top.xdmf")
+submeshes = [SubMesh(mesh, domains, i) for i in range(1, 5)]
 
-bottomfile << bottom
-topfile << top
+[submesh.move(Expression(('a', 'b', '0'), a=a, b=b))
+for (submesh, (a, b)) in zip(submeshes, product((0.2, -0.2), (0.2, -0.2)))]
+
+for i, mesh in enumerate(submeshes, 1):
+    f = XDMFFile(mpi_comm_world(), "q%d_mesh.xdmf" % i)
+    f << mesh
