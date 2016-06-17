@@ -8,9 +8,7 @@ plot(mesh)
 plot(sub_domains)
 
 # Define function spaces
-P2 = VectorElement("Lagrange", mesh.ufl_cell(), 1)
-P2 = P2 + VectorElement("Bubble", mesh.ufl_cell(), 3)
-
+P2 = VectorElement("Lagrange", mesh.ufl_cell(), 2)
 P1 = FiniteElement("Lagrange", mesh.ufl_cell(), 1)
 TH = P2 * P1
 W = FunctionSpace(mesh, TH)

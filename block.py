@@ -34,7 +34,7 @@ f = Constant((0, 0))
 L0 = inner(f, v)*dx
 L1 = inner(f, c)*dx
 
-from block import block_mat, block_bc, block_assemble, block_bc, block_transpose
+from block import block_assemble
 
 bb = block_assemble([L0, L1, 0])
 
