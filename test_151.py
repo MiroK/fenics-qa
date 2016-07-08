@@ -1,11 +1,5 @@
 from dolfin import *
 
-mesh = UnitCubeMesh(4, 4, 4)
-
-# The domains will be marked by DG0 function
-S = FunctionSpace(mesh, 'DG', 0)
-domains = interpolate(Expression('(x[2] > 0.5-DOLFIN_EPS) ? 1 : 2', degree=1), S)
-
 # Let the tensor depend on domains
 def tensor_conditional(predicate, tvalue, fvalue):
     '''
@@ -34,7 +28,19 @@ i, j, k, l = indices(4)
 delta = Identity(3)
 C_1 = as_tensor(delta[i,j]*delta[k,l], (i, j, k, l))  # value for domain 1
 C_2 = as_tensor(delta[i,k]*delta[j,l], (i, j, k, l))  # ... for domain 2
-C = tensor_conditional(lt(domains, 1.5), C_1, C_2)    # switch on indicator
+C_3 = as_tensor(delta[i,l]*delta[j,k], (i, j, k, l))  # ... for domain 2
+
+
+mesh = UnitCubeMesh(4, 4, 6)
+# The domains will be marked by DG0 function
+S = FunctionSpace(mesh, 'DG', 0)
+domains = interpolate(Expression('(x[2] > 0.5-DOLFIN_EPS) ? 1 : ((x[2] > 0.25-DOLFIN_EPS) ? 2 : 3)', degree=1), S)
+
+C = tensor_conditional(lt(domains, 1.5),
+                       C_1,
+                       tensor_conditional(lt(domains, 2.5),
+                                          C_2,
+                                          C_3))
 
 V = VectorFunctionSpace(mesh, 'P', 1)
 du = TrialFunction(V)
@@ -51,3 +57,4 @@ Gain = derivative(Form, u, du)
 
 A = assemble(Gain)
 assert A.norm('linf') > 0
+print A.norm('linf')
