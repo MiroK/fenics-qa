@@ -69,6 +69,7 @@ for ncells in [32, 64, 128, 256, 512, 1024]:
         solver.solve(wh.vector(), b)
 
         uh = interpolate(uh, W)
+
         uh.vector().axpy(1., wh.vector())
     else:
         uh = interpolate(uh, W)

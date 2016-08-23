@@ -1,11 +1,11 @@
 from dolfin import *
 import numpy as np
 
-u_exact = Expression('sin(k0*x[0])+sin(k1*x[1])+cos(2*pi*x[0])',
-                     k0=1*pi, k1=1*pi, degree=4)
+u_exact = Expression('sin(k0*x[0])+sin(k1*x[1])+C*cos(2*pi*x[0])',
+                     k0=1*pi, k1=3*pi, degree=4, C=1.)
 
-f = Expression('k0*k0*sin(k0*x[0])+k1*k1*sin(k1*x[1])+4*pi*pi*cos(2*pi*x[0])',
-               k0=u_exact.k0, k1=u_exact.k1, degree=4)
+f = Expression('k0*k0*sin(k0*x[0])+k1*k1*sin(k1*x[1])+C*4*pi*pi*cos(2*pi*x[0])',
+               k0=u_exact.k0, k1=u_exact.k1, C=u_exact.C, degree=4)
 
 # Sub domain for Periodic boundary condition
 class PeriodicBoundary(SubDomain):
@@ -75,19 +75,34 @@ for ncells in [8, 16, 32, 64, 128]:
     
     W = FunctionSpace(mesh, 'CG', 1)
     # Stage two: Dirichlet correction if the orig right-hand side requires it
+    # FIXME: THINK ABOUT THIS.
+    # FIXME: TensorProduct...
     if abs(alpha) > 1E-13:
-        w = TrialFunction(W)
-        v = TestFunction(W)
-        bc = DirichletBC(W, Constant(0.), 'on_boundary')
+        V1 = FunctionSpace(UnitIntervalMesh(ncells), 'CG', 1)
+        u = TrialFunction(V1)
+        v = TestFunction(V1)
 
-        a = inner(grad(w), grad(v))*dx
+        a = inner(grad(u), grad(v))*dx
         L = inner(Constant(alpha*nnorm), v)*dx
-        B, b = assemble_system(a, L, bc)
-        wh = Function(W)
 
-        solver = PETScKrylovSolver('cg', 'hypre_amg')
-        solver.set_operator(B)
-        solver.solve(wh.vector(), b)
+        points = ([0., 0.5], [0.5, 0.])
+        comps = []
+        for p in points:
+            beta = -uh(*p)
+            bc = DirichletBC(V1, Constant(beta), 'on_boundary')
+            B, b = assemble_system(a, L, bc)
+            vh = Function(V1)
+
+            solver = PETScKrylovSolver('cg', 'hypre_amg')
+            solver.set_operator(B)
+            solver.solve(vh.vector(), b)
+            comps.append(vh)
+        # Try to make the tensor product
+        dofs = W.tabulate_dof_coordinates().reshape((-1, 2))
+        U0 = np.array([comps[0](x) for x in dofs[:, 0]])
+        U1 = np.array([comps[1](y) for y in dofs[:, 1]])
+        wh = Function(W)
+        wh.vector()[:] = U0*U1
 
         uh = interpolate(uh, W)
         # uh.vector().axpy(1., wh.vector())
@@ -110,6 +125,9 @@ e = interpolate(u_exact, W)
 e.vector().axpy(-1, uh.vector())
 plot(e, title='error')
 
-# plot(wh, title='wh')
+plot(project(grad(e)[0]**2, W), title='grad_x')
+plot(project(grad(e)[1]**2, W), title='grad_y')
+
+plot(wh, title='wh')
 
 interactive()
