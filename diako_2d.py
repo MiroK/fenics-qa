@@ -2,7 +2,7 @@ from dolfin import *
 import numpy as np
 
 u_exact = Expression('sin(k0*x[0])+sin(k1*x[1])+C*cos(2*pi*x[0])',
-                     k0=1*pi, k1=1*pi, degree=4, C=0.)
+                     k0=3*pi, k1=3*pi, degree=4, C=0.)
 
 f = Expression('k0*k0*sin(k0*x[0])+k1*k1*sin(k1*x[1])+C*4*pi*pi*cos(2*pi*x[0])',
                k0=u_exact.k0, k1=u_exact.k1, C=u_exact.C, degree=4)
@@ -67,11 +67,11 @@ for ncells in [8, 16, 32, 64, 128]:
     # Solve
     solver.solve(uh.vector(), b)
 
-    boundaries = EdgeFunction('size_t', mesh, 0)
-    [domain.mark(boundaries, tag) for tag, domain in enumerate(boundary_domains, 1)]
-    for tag in range(1, 5):
-        print '\t', assemble(uh*ds(domain=mesh, subdomain_id=tag, subdomain_data=boundaries))
-    print '\t\t', assemble(uh*ds)
+    # boundaries = EdgeFunction('size_t', mesh, 0)
+    # [domain.mark(boundaries, tag) for tag, domain in enumerate(boundary_domains, 1)]
+    # for tag in range(1, 5):
+    #     print '\t', assemble(uh*ds(domain=mesh, subdomain_id=tag, subdomain_data=boundaries))
+    # print '\t\t', assemble(uh*ds)
     
     W = FunctionSpace(mesh, 'CG', 1)
     # Stage two: Dirichlet correction if the orig right-hand side requires it
@@ -89,6 +89,7 @@ for ncells in [8, 16, 32, 64, 128]:
         comps = []
         for p in points:
             beta = -uh(*p)
+            # print 'beta', beta, uh(0.5, 0.5)
             bc = DirichletBC(V1, Constant(beta), 'on_boundary')
             B, b = assemble_system(a, L, bc)
             vh = Function(V1)
@@ -102,7 +103,9 @@ for ncells in [8, 16, 32, 64, 128]:
         U0 = np.array([comps[0](x) for x in dofs[:, 0]])
         U1 = np.array([comps[1](y) for y in dofs[:, 1]])
         wh = Function(W)
-        wh.vector()[:] = U0+U1
+        wh.vector()[:] = U0+U1+uh(0.5, 0.5)
+
+        print '(1, wh)', assemble(wh*dx)
 
         uh = interpolate(uh, W)
         uh.vector().axpy(1., wh.vector())
