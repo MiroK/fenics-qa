@@ -2,8 +2,8 @@ from dolfin import *
 import numpy as np
 
 # Source term
-f0 = Expression('sin(k*x[0])', k=2*pi, degree=4)
-f1 = Expression('sin(k*x[0])', k=1*pi, degree=4)
+f0 = Expression('sin(k*x[0])', k=3*pi, degree=4)
+f1 = Expression('sin(k*x[0])', k=7*pi, degree=4)
 
 u_exact = Expression('f0/k0/k0 + f1/k1/k1', f0=f0, k0=f0.k, f1=f1, k1=f1.k,
                      degree=4)
@@ -19,8 +19,10 @@ class PeriodicBoundary(SubDomain):
         if near(x[0], 1):
             y[0] = x[0] - 1.0
 
-# Create mesh and finite element
-for ncells in [32, 64, 128, 256, 512]:
+# ----------------------------------------------------------------------------
+
+e0, h0 = -1, -1
+for ncells in [32, 64, 128, 256, 512, 1024]:
     mesh = UnitIntervalMesh(ncells)
 
     # Stage one: periodic
@@ -34,11 +36,12 @@ for ncells in [32, 64, 128, 256, 512]:
     uh = Function(V)
 
     # In the first stage we want to avoid constant nullspace
-    solver = PETScKrylovSolver('cg')
+    solver = PETScKrylovSolver('cg', 'hypre_amg')
     solver.set_operator(A)
     # Create vector that spans the null space and normalize
     null_vec = interpolate(Constant(1), V).vector()
-    null_vec *= 1.0/null_vec.norm('l2')
+    nnorm = null_vec.norm('l2')
+    null_vec *= 1.0/nnorm
     # Create null space basis object and attach to PETSc matrix
     null_space = VectorSpaceBasis([null_vec])
     as_backend_type(A).set_nullspace(null_space)
@@ -48,34 +51,37 @@ for ncells in [32, 64, 128, 256, 512]:
     # Solve
     solver.solve(uh.vector(), b)
 
-    # # Stage two: neumann
-    # V = FunctionSpace(mesh, 'CG', 1)
-    # u = TrialFunction(V)
-    # v = TestFunction(V)
+    beta = uh(0.)
+    W = FunctionSpace(mesh, 'CG', 1)
+    # Stage two: Dirichlet correction if the orig right-hand side requires it
+    if abs(alpha) > 1E-13:
+        w = TrialFunction(W)
+        v = TestFunction(W)
+        bc = DirichletBC(W, Constant(-beta), 'on_boundary')
 
-    # a = inner(grad(u), grad(v))*dx
-    # A = assemble_system(a)
-    # # Rhs
-    # b = interpolate(Constant(1), V).vector()
-    # b *= 1.0/b.norm('l2')
-    # # null_vec
+        a = inner(grad(w), grad(v))*dx
+        L = inner(Constant(alpha*nnorm), v)*dx
+        B, b = assemble_system(a, L, bc)
+        wh = Function(W)
 
-    print 'h = %4f e = %6f' % (mesh.hmin(), errornorm(u_exact, uh, 'H1'))
+        solver = PETScKrylovSolver('cg', 'hypre_amg')
+        solver.set_operator(B)
+        solver.solve(wh.vector(), b)
 
-    #x0[:] = b1
+        uh = interpolate(uh, W)
+
+        uh.vector().axpy(1., wh.vector())
+    else:
+        uh = interpolate(uh, W)
+    
+    h = mesh.hmin()
+    e = errornorm(u_exact, uh, 'H1')
+    if e0 > 0:
+        rate = ln(e/e0)/ln(h/h0)
+        print 'h = %4f e = %6f r = %.2f' % (h, e, rate)
+    h0, e0 = mesh.hmin(), e
 
 # Visual
 plot(uh, title='numeric')
 plot(u_exact, mesh=mesh, title='exact')
-
-e = interpolate(u_exact, V)
-e.vector().axpy(-1, uh.vector())
-e.vector()[:] += e.vector().min()
-
-Ae = e.vector().copy()
-A.mult(e.vector(), Ae)
-print Ae.norm('linf'), null_vec.inner(Ae)
-
-plot(e, title='error')
-
 interactive()
