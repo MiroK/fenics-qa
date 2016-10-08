@@ -12,11 +12,13 @@ def eigenvalues(V, bcs, tol, symmetry):
 
     # Assemble matrix for RHS
     b = inner(u, v)*dx
-    asm = SystemAssembler(b, dummy)
+    asm = SystemAssembler(b, dummy, bcs)
+    vec = PETScVector(); asm.assemble(vec)
     B = PETScMatrix(); asm.assemble(B)
-    b = PETScVector(); asm.assemble(b)
+    #assemble_system(a, dummy, bcs, A_tensor=A, b_tensor=vec)
+    #assemble_system(b, dummy, bcs, A_tensor=B, b_tensor=vec)
     
-    if symmetry: [bc.zero_columns(B, b) for bc in bcs]
+    if symmetry: [bc.zero_columns(B, vec) for bc in bcs]
     
     [bc.zero(B) for bc in bcs]
 
@@ -39,7 +41,7 @@ def compare_eigenvalues(mesh, tol, symmetry):
 
 # -----------------------------------------------------------------------------
 
-symmetry = True
+symmetry = False
 
 mesh = RectangleMesh(Point(0, 0), Point(pi, pi), 40, 40)
 print("\ndiagonal mesh")
