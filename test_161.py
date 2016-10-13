@@ -1,19 +1,19 @@
-code = '''
-class MyFoo : public Expression
-{
-public:
-
-  std::shared_ptr<Array<double> >* foo;
-
-  MyFoo() : Expression() { }
-
-  void eval(Array<double>& values, const Array<double>& x) const
-  {
-    //assert(foo);
-    //std::cout << "foo = " << foo->str(1) << std::endl;
-    values[0] = 0.0;
-  }
-};'''
+# code = '''
+# class MyFoo : public Expression
+# {
+# public:
+# 
+#   std::shared_ptr<Array<double> >* foo;
+# 
+#   MyFoo() : Expression() { }
+# 
+#   void eval(Array<double>& values, const Array<double>& x) const
+#   {
+#     //assert(foo);
+#     //std::cout << "foo = " << foo->str(1) << std::endl;
+#     values[0] = 0.0;
+#   }
+# };'''
 
 from dolfin import *
 import numpy as np
@@ -31,3 +31,8 @@ x = np.array([0., 0.3])
 my_foo.eval(values, x)
 
 print values
+# =======
+# from dolfin import *
+# 
+# solver = PETScKrylovSolver("gmres")
+# >>>>>>> 556af950831cd43c4dc4cc4384d8128fcc71baa9
